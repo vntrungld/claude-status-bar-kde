@@ -6,6 +6,7 @@ ColumnLayout {
     Layout.minimumWidth: 260
     Layout.minimumHeight: 120
     property var agg: ({ active_count: 0, sessions: [] })
+    property var usage: ({ status: "loading", five_hour: {}, seven_day: {} })
     PlasmaComponents.Label { text: "Claude sessions: " + agg.active_count }
     Repeater {
         model: agg.sessions
