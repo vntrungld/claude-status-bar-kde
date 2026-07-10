@@ -50,7 +50,7 @@ PlasmoidItem {
     Timer {
         id: usageTimer
         interval: 300000; repeat: true
-        running: false   // enabled in Task 7 by the config toggle
+        running: plasmoid.configuration.showUsageOnPanel
         triggeredOnStart: true
         onTriggered: usageSrc.run(root.usageCmd)
     }

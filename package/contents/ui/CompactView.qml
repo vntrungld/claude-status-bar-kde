@@ -53,7 +53,7 @@ MouseArea {
         Item { Layout.fillWidth: true }   // spacer pushes usage to the right
         PlasmaComponents.Label {
             id: usageLabel
-            visible: true   // bound to the config toggle in Task 7
+            visible: plasmoid.configuration.showUsageOnPanel
             function pct(w) { return (w && w.utilization !== undefined) ? Math.round(w.utilization) : null }
             function part(prefix, w) { var v = pct(w); return prefix + (v === null ? "—" : v) + "%" }
             text: part("5h ", usage.five_hour) + " · " + part("7d ", usage.seven_day)
