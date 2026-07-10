@@ -131,8 +131,9 @@ MouseArea {
             id: animText
             Layout.alignment: Qt.AlignVCenter
             visible: agg.state === "thinking" || agg.state === "tool"
-            readonly property string content: agg.state === "tool" ? toolLabel(agg.tool)
-                                                                    : (thinkingWord + "…")
+            // Every status word ends with an ellipsis (Claude-CLI style).
+            readonly property string content: (agg.state === "tool" ? toolLabel(agg.tool)
+                                                                     : thinkingWord) + "…"
             readonly property int n: content.length
             property real head: 0   // highlight position: high->low = right->left
             NumberAnimation on head {
