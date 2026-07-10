@@ -133,16 +133,19 @@ MouseArea {
             visible: agg.state === "thinking" || agg.state === "tool"
             readonly property string content: agg.state === "tool" ? toolLabel(agg.tool)
                                                                     : (thinkingWord + "…")
-            property real phase: 0
-            NumberAnimation on phase {
-                running: animText.visible && animText.content.length > 0
-                from: 0; to: 2 * Math.PI; duration: 1200; loops: Animation.Infinite
+            readonly property int n: content.length
+            property real head: 0   // highlight position: high->low = right->left
+            NumberAnimation on head {
+                running: animText.visible && animText.n > 0
+                from: animText.n + 2; to: -2
+                duration: Math.max(700, animText.n * 130); loops: Animation.Infinite
             }
             Repeater {
-                model: animText.content.length
+                model: animText.n
                 PlasmaComponents.Label {
                     text: { var c = animText.content.charAt(index); return c === " " ? " " : c }
-                    y: -2.0 * Math.sin(animText.phase - index * 0.6)
+                    // Dim base, brightening to full at the sweeping highlight.
+                    opacity: 0.4 + 0.6 * Math.max(0, 1 - Math.abs(index - animText.head) / 2.4)
                 }
             }
         }
