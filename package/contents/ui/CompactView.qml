@@ -126,7 +126,7 @@ MouseArea {
             }
         }
         // Text next to Clawd, shown only while thinking/using a tool, with a
-        // per-character wiggle (each letter bobs at a staggered phase).
+        // right-to-left brightness shimmer across the characters.
         Row {
             id: animText
             Layout.alignment: Qt.AlignVCenter
