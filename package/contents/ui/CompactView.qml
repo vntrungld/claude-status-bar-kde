@@ -125,10 +125,26 @@ MouseArea {
                 anchors.bottom: parent.bottom
             }
         }
-        PlasmaComponents.Label {
-            visible: agg.state === "tool" || agg.state === "thinking"
-            text: agg.state === "tool" ? toolLabel(agg.tool) : (thinkingWord + "…")
-            elide: Text.ElideRight
+        // Text next to Clawd, shown only while thinking/using a tool, with a
+        // per-character wiggle (each letter bobs at a staggered phase).
+        Row {
+            id: animText
+            Layout.alignment: Qt.AlignVCenter
+            visible: agg.state === "thinking" || agg.state === "tool"
+            readonly property string content: agg.state === "tool" ? toolLabel(agg.tool)
+                                                                    : (thinkingWord + "…")
+            property real phase: 0
+            NumberAnimation on phase {
+                running: animText.visible && animText.content.length > 0
+                from: 0; to: 2 * Math.PI; duration: 1200; loops: Animation.Infinite
+            }
+            Repeater {
+                model: animText.content.length
+                PlasmaComponents.Label {
+                    text: { var c = animText.content.charAt(index); return c === " " ? " " : c }
+                    y: -2.0 * Math.sin(animText.phase - index * 0.6)
+                }
+            }
         }
         PlasmaComponents.Label {
             visible: agg.started_at !== null
