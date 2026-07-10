@@ -23,3 +23,11 @@ Then add the **Claude Status Bar** widget to a panel. Uninstall with `./uninstal
 Usage comes from Claude's `/api/oauth/usage` endpoint (same source as `/usage`),
 polled at most every 5 minutes. It is undocumented and rate-limited; if it fails
 the last known values are shown dimmed.
+
+## Credits
+
+The animated Clawd crab artwork (`package/contents/icons/clawd/*.webp`) is
+derived from [clawd-tank](https://github.com/marciogranzotto/clawd-tank) by
+Marcio Granzotto, used under the MIT License (see
+`package/contents/icons/clawd/LICENSE.clawd-tank`). The SVG animations were
+rendered to animated WebP for use in the plasmoid.

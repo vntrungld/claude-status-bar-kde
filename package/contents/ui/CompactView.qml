@@ -25,6 +25,23 @@ MouseArea {
         }
     }
 
+    // Map activity state + current tool to a Clawd animation file (assets from
+    // clawd-tank, MIT-licensed — see icons/clawd/LICENSE.clawd-tank).
+    function clawdAnim(state, tool) {
+        if (state === "waiting") return "notification"
+        if (state === "thinking") return "thinking"
+        if (state === "tool") {
+            switch (tool) {
+            case "Edit": case "Write": case "MultiEdit": return "typing"
+            case "Bash": return "building"
+            case "Grep": case "Glob": return "debugger"
+            case "Read": return "carrying"
+            default: return "typing"
+            }
+        }
+        return "idle"
+    }
+
     // Playful "thinking" verbs (my own list). A fresh word is chosen each time a
     // session enters the thinking state and held for that phase, avoiding an
     // immediate repeat — Claude-Code-CLI style.
@@ -81,52 +98,24 @@ MouseArea {
         id: row
         anchors.fill: parent
         spacing: 4
-        Item {
-            id: iconBox
+        AnimatedImage {
+            id: clawd
             Layout.alignment: Qt.AlignVCenter
             // Square, sized to panel thickness (compact.height is set by the
             // panel, so this does not feed back into the row's implicit width).
             Layout.preferredHeight: Math.max(16, compact.height)
             Layout.preferredWidth: Layout.preferredHeight
+            fillMode: Image.PreserveAspectFit
+            smooth: true
+            cache: false
+            playing: true
+            // Animated Clawd (WebP) chosen by activity state / current tool.
+            source: Qt.resolvedUrl("../icons/clawd/" + clawdAnim(agg.state, agg.tool) + ".webp")
 
-            readonly property bool working: agg.state === "thinking" || agg.state === "tool"
-            property int frame: 0
-
-            // Cycle the two leg frames only while working -> "walking" legs.
-            Timer {
-                interval: 170; repeat: true; running: iconBox.working
-                onTriggered: iconBox.frame = (iconBox.frame + 1) % 2
-            }
-
-            Image {
-                id: crab
-                anchors.fill: parent
-                fillMode: Image.PreserveAspectFit
-                smooth: true
-                sourceSize.width: 96
-                sourceSize.height: 96
-                // Idle rests on frame A; working alternates A/B.
-                source: Qt.resolvedUrl(
-                    (iconBox.working && iconBox.frame === 1) ? "../icons/crab-b.svg"
-                                                             : "../icons/crab-a.svg")
-                opacity: iconBox.working ? 1.0 : 0.6
-                transform: Translate { id: sway }
-
-                // Sideways scuttle while working.
-                SequentialAnimation {
-                    running: iconBox.working
-                    loops: Animation.Infinite
-                    alwaysRunToEnd: true
-                    NumberAnimation { target: sway; property: "x"; to: 2.5; duration: 330; easing.type: Easing.InOutSine }
-                    NumberAnimation { target: sway; property: "x"; to: -2.5; duration: 330; easing.type: Easing.InOutSine }
-                    onStopped: sway.x = 0
-                }
-            }
-
-            // Yellow "awaiting permission" dot.
+            // Yellow "awaiting permission" dot on top of the notification anim.
             Rectangle {
                 visible: agg.state === "waiting"
-                width: Math.round(parent.width * 0.34)
+                width: Math.round(parent.height * 0.3)
                 height: width
                 radius: width / 2
                 color: "#f5c451"
