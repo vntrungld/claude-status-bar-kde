@@ -22,7 +22,7 @@ ColumnLayout {
         model: agg.sessions
         RowLayout {
             Layout.fillWidth: true
-            PlasmaComponents.Label { text: (modelData.cwd || "").split("/").pop() || modelData.session_id.substring(0,8) }
+            PlasmaComponents.Label { text: (modelData.cwd || "").split("/").pop() || (modelData.session_id || "").substring(0,8) }
             Item { Layout.fillWidth: true }
             PlasmaComponents.Label {
                 text: modelData.state + (modelData.tool ? " · " + modelData.tool : "")

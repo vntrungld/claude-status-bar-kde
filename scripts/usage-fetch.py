@@ -37,7 +37,10 @@ def build_result(now, http_status, body, prev_cache):
             "seven_day": prev.get("seven_day", {})}
 
 def read_token():
-    creds = json.load(open(CRED))["claudeAiOauth"]
+    try:
+        creds = json.load(open(CRED))["claudeAiOauth"]
+    except (OSError, ValueError, KeyError):
+        return None, None
     return creds.get("accessToken"), creds.get("expiresAt")
 
 def http_get(token):

@@ -39,3 +39,15 @@ def test_error_status_without_prev():
 def test_load_prev_cache_missing_returns_none(data_home):
     m = _mod()
     assert m.load_prev_cache() is None  # no cache file yet
+
+def test_read_token_missing_file_returns_none(tmp_path):
+    m = _mod()
+    m.CRED = str(tmp_path / "nonexistent.json")
+    assert m.read_token() == (None, None)
+
+def test_main_missing_credentials_prints_reauth(tmp_path, capsys, data_home):
+    m = _mod()
+    m.CRED = str(tmp_path / "nonexistent.json")
+    m.main()
+    out = json.loads(capsys.readouterr().out.strip())
+    assert out["status"] == "reauth"
