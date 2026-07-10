@@ -37,7 +37,8 @@ Item {
                 }
                 Item { Layout.fillWidth: true }
                 PlasmaComponents.Label {
-                    text: modelData.state + (modelData.tool ? " · " + modelData.tool : "") + "…"
+                    text: modelData.state + (modelData.tool ? " · " + modelData.tool : "")
+                          + (modelData.state === "idle" ? "" : "…")
                     opacity: 0.8
                 }
             }
