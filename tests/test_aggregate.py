@@ -2,11 +2,6 @@ import importlib, json, os, subprocess, sys
 
 AGG = os.path.join(os.path.dirname(__file__), "..", "scripts", "claude-status-aggregate.py")
 
-def load_agg():
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
-    import claude_status_aggregate as m  # hyphen file imported via importlib below
-    return m
-
 def _agg():
     import importlib.util
     spec = importlib.util.spec_from_file_location("agg", AGG)
@@ -56,3 +51,16 @@ def test_cli_reads_session_dir(data_home):
     r = subprocess.run([sys.executable, AGG], capture_output=True, text=True, env=env)
     out = json.loads(r.stdout)
     assert out["state"] == "waiting"
+
+def test_malformed_updated_at_does_not_crash():
+    m = _agg()
+    docs = [d("a", "tool", started=None, updated="garbage", tool="Edit")]
+    out = m.aggregate(docs, now=100000)
+    # non-numeric updated_at coerces to 0 -> stale non-idle -> dropped
+    assert out["state"] == "idle" and out["active_count"] == 0
+
+def test_malformed_started_at_ignored():
+    m = _agg()
+    docs = [d("a", "thinking", started="oops", updated=999999999999)]
+    out = m.aggregate(docs, now=100000)
+    assert out["state"] == "thinking" and out["started_at"] is None
