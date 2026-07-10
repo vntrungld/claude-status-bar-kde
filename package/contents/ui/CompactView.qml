@@ -9,6 +9,7 @@ MouseArea {
     onClicked: plasmoid.expanded = !plasmoid.expanded
 
     property var agg: ({ state: "idle", tool: null, started_at: null, active_count: 0, waiting_count: 0, sessions: [] })
+    property var usage: ({ status: "loading", five_hour: {}, seven_day: {} })
 
     function toolLabel(t) {
         switch (t) {
@@ -48,6 +49,19 @@ MouseArea {
         PlasmaComponents.Label {
             visible: agg.started_at !== null
             text: fmt(compact.elapsed)
+        }
+        Item { Layout.fillWidth: true }   // spacer pushes usage to the right
+        PlasmaComponents.Label {
+            id: usageLabel
+            visible: true   // bound to the config toggle in Task 7
+            function pct(w) { return (w && w.utilization !== undefined) ? Math.round(w.utilization) : null }
+            function part(prefix, w) { var v = pct(w); return prefix + (v === null ? "—" : v) + "%" }
+            text: part("5h ", usage.five_hour) + " · " + part("7d ", usage.seven_day)
+            opacity: usage.status === "ok" ? 1.0 : 0.5
+            color: {
+                var v = Math.max(pct(usage.five_hour) || 0, pct(usage.seven_day) || 0)
+                return v > 90 ? "#e05252" : (v > 70 ? "#f5c451" : palette.text)
+            }
         }
     }
 }

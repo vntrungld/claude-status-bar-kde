@@ -10,10 +10,11 @@ PlasmoidItem {
     readonly property string binDir:
         "${XDG_DATA_HOME:-$HOME/.local/share}/claude-status-bar/bin"
     readonly property string aggCmd: "python3 " + binDir + "/claude-status-aggregate.py"
-    // usagePath/usageCmd added in Task 6.
+    readonly property string usageCmd: "python3 " + binDir + "/usage-fetch.py"
 
     property var agg: ({ state: "idle", tool: null, started_at: null,
                          active_count: 0, waiting_count: 0, sessions: [] })
+    property var usage: ({ status: "loading", five_hour: {}, seven_day: {} })
 
     // Executable engine runs the command through /bin/sh, so the ${XDG...}
     // expansion in binDir is resolved by the shell — no manual env lookup.
@@ -34,6 +35,26 @@ PlasmoidItem {
         onTriggered: aggSrc.run(root.aggCmd)
     }
 
-    compactRepresentation: CompactView { agg: root.agg }
-    fullRepresentation: FullView { agg: root.agg }
+    Plasma5Support.DataSource {
+        id: usageSrc
+        engine: "executable"
+        connectedSources: []
+        onNewData: (source, data) => {
+            disconnectSource(source)
+            try { root.usage = JSON.parse((data["stdout"] || "").trim()) }
+            catch (e) { /* keep previous */ }
+        }
+        function run(cmd) { connectSource(cmd) }
+    }
+
+    Timer {
+        id: usageTimer
+        interval: 300000; repeat: true
+        running: false   // enabled in Task 7 by the config toggle
+        triggeredOnStart: true
+        onTriggered: usageSrc.run(root.usageCmd)
+    }
+
+    compactRepresentation: CompactView { agg: root.agg; usage: root.usage }
+    fullRepresentation: FullView { agg: root.agg; usage: root.usage }
 }
