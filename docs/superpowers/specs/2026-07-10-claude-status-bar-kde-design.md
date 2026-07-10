@@ -29,6 +29,9 @@ Two independent capabilities:
 - **Panel usage readout (right-aligned):** live 5-hour % and weekly (~72h) %
   utilization shown directly in the compact panel representation, e.g.
   `5h 42% · 7d 18%`, fed by a low-frequency background poll.
+- **Config toggle** to show/hide that panel usage readout (default: shown).
+  Hiding it also stops the background poll (usage then loads only when the popup
+  opens), reducing API calls.
 - Popup usage section: the same two windows shown larger as progress bars with
   reset hints.
 - Auto-install script that merges hooks into `~/.claude/settings.json` and
@@ -135,15 +138,19 @@ Run by the plasmoid on a ~1s interval. Reads every `sessions/*.json`:
 only this one call.
 
 ### 5.3 Usage fetcher — `usage-fetch.py`
-Because the usage % is now shown **on the panel continuously** (not only in the
-popup), the plasmoid runs this script on a **background timer** at
-`USAGE_POLL_INTERVAL` (default 300s / 5 min) via a second executable
-`DataSource`. Opening the popup also triggers a fetch, but still gated by the
-same `usage-cache.json` freshness check (skip if cache newer than
-`USAGE_MIN_INTERVAL`, default 300s) so a click never adds an extra call on top of
-the background poll. 5 min is well within the endpoint's tolerance **provided the
-`User-Agent: claude-code/<ver>` header is sent**; this is the single most
-important rate-limit mitigation.
+The script itself just fetches + caches; *when* it runs depends on the
+`showUsageOnPanel` config toggle (§5.5):
+- **Toggle on (default):** the plasmoid runs it on a **background timer** at
+  `USAGE_POLL_INTERVAL` (default 300s / 5 min) via a second executable
+  `DataSource`, so the panel readout stays live.
+- **Toggle off:** no background poll; the script runs only when the popup opens
+  (gated by the freshness check below).
+
+In both cases a fetch is gated by the `usage-cache.json` freshness check (skip if
+cache newer than `USAGE_MIN_INTERVAL`, default 300s) so a popup click never adds
+an extra call on top of a background poll. 5 min is well within the endpoint's
+tolerance **provided the `User-Agent: claude-code/<ver>` header is sent**; this is
+the single most important rate-limit mitigation.
 
 - Read `accessToken`, `expiresAt` from `~/.claude/.credentials.json`
   (`claudeAiOauth`).
@@ -173,6 +180,9 @@ package/
   contents/ui/CompactView.qml  (panel representation)
   contents/ui/FullView.qml     (popup)
   contents/ui/UsageBars.qml    (5h/weekly bars)
+  contents/ui/configGeneral.qml(settings page)
+  contents/config/main.xml     (config keys)
+  contents/config/config.qml   (registers settings page)
   contents/icons/…             (Claude logo states)
 ```
 
@@ -186,7 +196,8 @@ package/
     a short tool label ("Editing", "Running", …) mapped from tool name, and the
     elapsed timer text driven by a local QML `Timer` ticking every 1s computing
     `now - started_at` (smooth regardless of aggregator cadence).
-  - **Right (right-aligned, after a spacer):** the usage readout
+  - **Right (right-aligned, after a spacer):** shown only when
+    `showUsageOnPanel` is true — the usage readout
     `5h {five_hour}% · 7d {seven_day}%` from `usage-cache`. Colour-graded
     (e.g. neutral <70%, amber 70–90%, red >90%). While `status` is
     `rate_limited`/`error`/`reauth` or before the first successful fetch, show the
@@ -207,7 +218,24 @@ package/
 `Bash → "Running"`, `Read → "Reading"`, `Grep/Glob → "Searching"`,
 `WebFetch/WebSearch → "Browsing"`, `Task → "Delegating"`, default → the raw name.
 
-### 5.5 Installer — `install.sh` (+ `uninstall.sh`)
+### 5.5 Plasmoid configuration
+Standard plasmoid config: `contents/config/main.xml` declares config keys;
+`contents/ui/configGeneral.qml` provides the settings page; `config.qml`
+registers it. The config UI opens via the widget's right-click "Configure…".
+
+MVP config keys:
+
+| Key | Type | Default | Effect |
+|-----|------|---------|--------|
+| `showUsageOnPanel` | bool | `true` | Show/hide the right-aligned `5h % · 7d %` readout in the compact panel view. When false, the background usage `DataSource` interval is disabled (set to 0) so usage is fetched only on popup open. |
+
+The compact view binds the usage readout's `visible` and the usage
+`DataSource`'s polling `interval` to `plasmoid.configuration.showUsageOnPanel`,
+so toggling takes effect live without restart. Additional keys (poll interval,
+colour thresholds) are out of scope for MVP but the config file is the place they
+would go.
+
+### 5.6 Installer — `install.sh` (+ `uninstall.sh`)
 `install.sh`:
 1. Copy the three scripts to `<data>/bin/`, `chmod +x`.
 2. Bake the detected `claude --version` into `usage-fetch.py` (or a sibling
@@ -236,8 +264,9 @@ package/
 3. Permission needed → `Notification` → `state=waiting`.
 4. Turn ends → `Stop` → `state=idle`.
 5. Plasmoid polls aggregator every 1s → updates panel icon/label/timer.
-6. In parallel, plasmoid polls `usage-fetch.py` every ~5 min → updates the
-   right-aligned `5h % · 7d %` readout on the panel from `usage-cache`.
+6. If `showUsageOnPanel` is on, plasmoid polls `usage-fetch.py` every ~5 min →
+   updates the right-aligned `5h % · 7d %` readout on the panel from
+   `usage-cache`. If off, no background poll and no panel readout.
 7. User clicks panel icon → popup opens → renders sessions from the last
    aggregate + the same cached usage as larger bars (no extra fetch unless the
    cache is past the min-interval gate).
