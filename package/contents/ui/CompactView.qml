@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.plasmoid
+import org.kde.kirigami as Kirigami
 
 MouseArea {
     id: compact
@@ -38,9 +39,29 @@ MouseArea {
         id: row
         anchors.fill: parent
         spacing: 4
-        PlasmaComponents.Label {
-            text: agg.state === "waiting" ? "●" : "◆"
-            color: agg.state === "waiting" ? "#f5c451" : palette.text
+        Kirigami.Icon {
+            id: logo
+            source: Qt.resolvedUrl("../icons/claude.svg")
+            Layout.alignment: Qt.AlignVCenter
+            // Square, sized to panel thickness (compact.height is set by the
+            // panel, so this does not feed back into the row's implicit width).
+            Layout.preferredHeight: Math.max(16, compact.height)
+            Layout.preferredWidth: Layout.preferredHeight
+            // Bright while working, gently dimmed at rest.
+            opacity: agg.state === "idle" ? 0.55 : 1.0
+
+            // Yellow "awaiting permission" dot.
+            Rectangle {
+                visible: agg.state === "waiting"
+                width: Math.round(parent.width * 0.34)
+                height: width
+                radius: width / 2
+                color: "#f5c451"
+                border.color: "#40000000"
+                border.width: 1
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+            }
         }
         PlasmaComponents.Label {
             visible: agg.state === "tool"
