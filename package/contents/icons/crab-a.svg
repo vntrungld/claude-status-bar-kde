@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <g fill="none" stroke="#C2410C" stroke-width="1.4" stroke-linecap="round">
+    <!-- legs frame A: left legs back, right legs forward -->
+    <path d="M8 15 L4.5 16.5"/>
+    <path d="M8.5 15.5 L5 18"/>
+    <path d="M9 16 L6.5 18.8"/>
+    <path d="M16 15 L19.5 17.5"/>
+    <path d="M15.5 15.5 L19 18.6"/>
+    <path d="M15 16 L17 18.8"/>
+  </g>
+  <!-- claws -->
+  <g fill="#E8895C" stroke="#C2410C" stroke-width="0.7">
+    <path d="M5.5 12 q-3 -1.5 -3.5 1.5 q1.8 1 3.5 -0.4 z"/>
+    <path d="M18.5 12 q3 -1.5 3.5 1.5 q-1.8 1 -3.5 -0.4 z"/>
+    <rect x="5" y="11.5" width="3" height="1.8" rx="0.9"/>
+    <rect x="16" y="11.5" width="3" height="1.8" rx="0.9"/>
+  </g>
+  <!-- body -->
+  <ellipse cx="12" cy="13" rx="5.6" ry="3.9" fill="#D97757" stroke="#C2410C" stroke-width="0.8"/>
+  <path d="M7 12 q5 -3.5 10 0" fill="none" stroke="#F2B49A" stroke-width="0.9" stroke-linecap="round"/>
+  <!-- eye stalks -->
+  <g stroke="#C2410C" stroke-width="1.1" stroke-linecap="round">
+    <path d="M10 10 L10 7.6"/>
+    <path d="M14 10 L14 7.6"/>
+  </g>
+  <circle cx="10" cy="7" r="1.4" fill="#ffffff" stroke="#C2410C" stroke-width="0.6"/>
+  <circle cx="14" cy="7" r="1.4" fill="#ffffff" stroke="#C2410C" stroke-width="0.6"/>
+  <circle cx="10.2" cy="7" r="0.6" fill="#3a2016"/>
+  <circle cx="14.2" cy="7" r="0.6" fill="#3a2016"/>
+</svg>

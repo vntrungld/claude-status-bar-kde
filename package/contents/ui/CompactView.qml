@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.plasmoid
-import org.kde.kirigami as Kirigami
 
 MouseArea {
     id: compact
@@ -39,16 +38,47 @@ MouseArea {
         id: row
         anchors.fill: parent
         spacing: 4
-        Kirigami.Icon {
-            id: logo
-            source: Qt.resolvedUrl("../icons/claude.svg")
+        Item {
+            id: iconBox
             Layout.alignment: Qt.AlignVCenter
             // Square, sized to panel thickness (compact.height is set by the
             // panel, so this does not feed back into the row's implicit width).
             Layout.preferredHeight: Math.max(16, compact.height)
             Layout.preferredWidth: Layout.preferredHeight
-            // Bright while working, gently dimmed at rest.
-            opacity: agg.state === "idle" ? 0.55 : 1.0
+
+            readonly property bool working: agg.state === "thinking" || agg.state === "tool"
+            property int frame: 0
+
+            // Cycle the two leg frames only while working -> "walking" legs.
+            Timer {
+                interval: 170; repeat: true; running: iconBox.working
+                onTriggered: iconBox.frame = (iconBox.frame + 1) % 2
+            }
+
+            Image {
+                id: crab
+                anchors.fill: parent
+                fillMode: Image.PreserveAspectFit
+                smooth: true
+                sourceSize.width: 96
+                sourceSize.height: 96
+                // Idle rests on frame A; working alternates A/B.
+                source: Qt.resolvedUrl(
+                    (iconBox.working && iconBox.frame === 1) ? "../icons/crab-b.svg"
+                                                             : "../icons/crab-a.svg")
+                opacity: iconBox.working ? 1.0 : 0.6
+                transform: Translate { id: sway }
+
+                // Sideways scuttle while working.
+                SequentialAnimation {
+                    running: iconBox.working
+                    loops: Animation.Infinite
+                    alwaysRunToEnd: true
+                    NumberAnimation { target: sway; property: "x"; to: 2.5; duration: 330; easing.type: Easing.InOutSine }
+                    NumberAnimation { target: sway; property: "x"; to: -2.5; duration: 330; easing.type: Easing.InOutSine }
+                    onStopped: sway.x = 0
+                }
+            }
 
             // Yellow "awaiting permission" dot.
             Rectangle {
