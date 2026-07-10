@@ -62,6 +62,19 @@ MouseArea {
         var m = Math.floor(s/60); return m > 0 ? (m + "m " + (s%60) + "s") : (s + "s")
     }
 
+    // Usage readout helpers: a coloured dot per window (green <50, yellow
+    // 50–80, red >=80) plus the percentage.
+    property int dotSize: Math.max(6, Math.round(compact.height * 0.26))
+    function usagePct(w) { return (w && w.utilization !== undefined) ? Math.round(w.utilization) : null }
+    function usagePctText(w) { var v = usagePct(w); return (v === null ? "—" : v) + "%" }
+    function usageDotColor(w) {
+        var v = usagePct(w)
+        if (v === null) return "#888888"
+        if (v >= 80) return "#e05252"   // red
+        if (v >= 50) return "#f5c451"   // yellow
+        return "#3fb950"                // green
+    }
+
     RowLayout {
         id: row
         anchors.fill: parent
@@ -131,17 +144,28 @@ MouseArea {
             text: fmt(compact.elapsed)
         }
         Item { Layout.fillWidth: true }   // spacer pushes usage to the right
-        PlasmaComponents.Label {
-            id: usageLabel
+        RowLayout {
+            id: usageBox
             visible: plasmoid.configuration.showUsageOnPanel
-            function pct(w) { return (w && w.utilization !== undefined) ? Math.round(w.utilization) : null }
-            function part(prefix, w) { var v = pct(w); return prefix + (v === null ? "—" : v) + "%" }
-            text: part("5h ", usage.five_hour) + " · " + part("7d ", usage.seven_day)
             opacity: usage.status === "ok" ? 1.0 : 0.5
-            color: {
-                var v = Math.max(pct(usage.five_hour) || 0, pct(usage.seven_day) || 0)
-                return v > 90 ? "#e05252" : (v > 70 ? "#f5c451" : palette.text)
+            spacing: 3
+
+            // 5-hour window
+            Rectangle {
+                Layout.alignment: Qt.AlignVCenter
+                width: compact.dotSize; height: compact.dotSize; radius: width / 2
+                color: usageDotColor(usage.five_hour)
             }
+            PlasmaComponents.Label { text: usagePctText(usage.five_hour) }
+
+            // Weekly (~72h) window
+            Rectangle {
+                Layout.alignment: Qt.AlignVCenter
+                Layout.leftMargin: 4
+                width: compact.dotSize; height: compact.dotSize; radius: width / 2
+                color: usageDotColor(usage.seven_day)
+            }
+            PlasmaComponents.Label { text: usagePctText(usage.seven_day) }
         }
     }
 }
