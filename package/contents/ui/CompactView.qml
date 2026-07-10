@@ -8,7 +8,7 @@ MouseArea {
     Layout.minimumWidth: row.implicitWidth
     onClicked: plasmoid.expanded = !plasmoid.expanded
 
-    readonly property var agg: root.agg
+    property var agg: ({ state: "idle", tool: null, started_at: null, active_count: 0, waiting_count: 0, sessions: [] })
 
     function toolLabel(t) {
         switch (t) {

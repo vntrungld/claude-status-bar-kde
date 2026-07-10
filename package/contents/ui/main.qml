@@ -34,6 +34,6 @@ PlasmoidItem {
         onTriggered: aggSrc.run(root.aggCmd)
     }
 
-    compactRepresentation: CompactView {}
-    fullRepresentation: FullView {}
+    compactRepresentation: CompactView { agg: root.agg }
+    fullRepresentation: FullView { agg: root.agg }
 }
