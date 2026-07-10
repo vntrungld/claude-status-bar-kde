@@ -940,9 +940,25 @@ Add inside `PlasmoidItem` (after the activity block), reusing `root.binDir`:
     }
 ```
 
+Also update the two representation lines (added in Task 5) to pass `usage`
+down as well — child files cannot see `root` (ids are file-scoped), so data
+must be passed as properties:
+
+```qml
+    compactRepresentation: CompactView { agg: root.agg; usage: root.usage }
+    fullRepresentation: FullView { agg: root.agg; usage: root.usage }
+```
+
 - [ ] **Step 2: Add the readout to CompactView.qml**
 
-Insert into the `RowLayout`, after the existing labels:
+First declare the `usage` property on CompactView's root (so main can bind it):
+
+```qml
+    property var usage: ({ status: "loading", five_hour: {}, seven_day: {} })
+```
+
+Then insert into the `RowLayout`, after the existing labels (reference the
+local `usage`, never `root.usage`):
 
 ```qml
         Item { Layout.fillWidth: true }   // spacer pushes usage to the right
@@ -951,10 +967,10 @@ Insert into the `RowLayout`, after the existing labels:
             visible: true   // bound to the config toggle in Task 7
             function pct(w) { return (w && w.utilization !== undefined) ? Math.round(w.utilization) : null }
             function part(prefix, w) { var v = pct(w); return prefix + (v === null ? "—" : v) + "%" }
-            text: part("5h ", root.usage.five_hour) + " · " + part("7d ", root.usage.seven_day)
-            opacity: root.usage.status === "ok" ? 1.0 : 0.5
+            text: part("5h ", usage.five_hour) + " · " + part("7d ", usage.seven_day)
+            opacity: usage.status === "ok" ? 1.0 : 0.5
             color: {
-                var v = Math.max(pct(root.usage.five_hour) || 0, pct(root.usage.seven_day) || 0)
+                var v = Math.max(pct(usage.five_hour) || 0, pct(usage.seven_day) || 0)
                 return v > 90 ? "#e05252" : (v > 70 ? "#f5c451" : palette.text)
             }
         }
@@ -1085,7 +1101,9 @@ git commit -m "$(printf 'Update: add config toggle to show/hide panel usage %%\n
 - Modify: `package/contents/ui/FullView.qml` (real popup)
 
 **Interfaces:**
-- Consumes: `root.agg.sessions` (Task 3/5), `root.usage` (Task 6).
+- Consumes: `agg` and `usage` passed in as properties (child files cannot see
+  `root` — ids are file-scoped). `FullView` receives both from `main.qml`
+  (Task 5/6) and forwards `usage` into `UsageBars`.
 
 - [ ] **Step 1: Write UsageBars.qml**
 
@@ -1098,19 +1116,20 @@ ColumnLayout {
     Layout.fillWidth: true
     spacing: 4
 
+    property var usage: ({ status: "loading", five_hour: {}, seven_day: {} })
     function pct(w) { return (w && w.utilization !== undefined) ? Math.round(w.utilization) : null }
 
     PlasmaComponents.Label {
-        visible: root.usage.status !== "ok"
-        text: root.usage.status === "reauth" ? i18n("Sign in to Claude to see usage")
-            : root.usage.status === "rate_limited" ? i18n("Usage rate-limited — showing last known")
-            : root.usage.status === "error" ? i18n("Usage unavailable")
+        visible: usage.status !== "ok"
+        text: usage.status === "reauth" ? i18n("Sign in to Claude to see usage")
+            : usage.status === "rate_limited" ? i18n("Usage rate-limited — showing last known")
+            : usage.status === "error" ? i18n("Usage unavailable")
             : i18n("Loading usage…")
         opacity: 0.7
     }
     Repeater {
-        model: [{ label: i18n("5-hour"), w: root.usage.five_hour },
-                { label: i18n("Weekly"), w: root.usage.seven_day }]
+        model: [{ label: i18n("5-hour"), w: usage.five_hour },
+                { label: i18n("Weekly"), w: usage.seven_day }]
         RowLayout {
             Layout.fillWidth: true
             visible: pct(modelData.w) !== null
@@ -1138,12 +1157,16 @@ ColumnLayout {
     Layout.minimumHeight: 200
     spacing: Kirigami.Units.smallSpacing
 
+    // Passed in from main.qml (Task 5/6); child files can't reach root.
+    property var agg: ({ active_count: 0, sessions: [] })
+    property var usage: ({ status: "loading", five_hour: {}, seven_day: {} })
+
     PlasmaComponents.Label {
-        text: i18n("Claude Code — %1 active", root.agg.active_count)
+        text: i18n("Claude Code — %1 active", agg.active_count)
         font.bold: true
     }
     Repeater {
-        model: root.agg.sessions
+        model: agg.sessions
         RowLayout {
             Layout.fillWidth: true
             PlasmaComponents.Label { text: (modelData.cwd || "").split("/").pop() || modelData.session_id.substring(0,8) }
@@ -1156,9 +1179,14 @@ ColumnLayout {
     }
     Kirigami.Separator { Layout.fillWidth: true }
     PlasmaComponents.Label { text: i18n("Usage limits"); font.bold: true }
-    UsageBars {}
+    UsageBars { usage: parent.usage }
 }
 ```
+
+Note: `UsageBars { usage: parent.usage }` — `parent` here is the FullView
+ColumnLayout, whose `usage` property was passed from main.qml. (If `parent`
+resolves to an intermediate layout at runtime, give the ColumnLayout an
+`id: fullRoot` and use `usage: fullRoot.usage` instead.)
 
 - [ ] **Step 3: Verify the popup**
 
