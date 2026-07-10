@@ -6,7 +6,9 @@ import org.kde.plasma.plasmoid
 MouseArea {
     id: compact
     Layout.minimumWidth: row.implicitWidth
-    onClicked: plasmoid.expanded = !plasmoid.expanded
+    // The click is wired from main.qml (onClicked: root.expanded = ...), where
+    // the PlasmoidItem is in scope. In Plasma 6 `expanded` lives on the
+    // PlasmoidItem, not on the `plasmoid` context property.
 
     property var agg: ({ state: "idle", tool: null, started_at: null, active_count: 0, waiting_count: 0, sessions: [] })
     property var usage: ({ status: "loading", five_hour: {}, seven_day: {} })

@@ -55,6 +55,10 @@ PlasmoidItem {
         onTriggered: usageSrc.run(root.usageCmd)
     }
 
-    compactRepresentation: CompactView { agg: root.agg; usage: root.usage }
+    compactRepresentation: CompactView {
+        agg: root.agg
+        usage: root.usage
+        onClicked: root.expanded = !root.expanded   // toggle popup (PlasmoidItem.expanded)
+    }
     fullRepresentation: FullView { agg: root.agg; usage: root.usage }
 }
