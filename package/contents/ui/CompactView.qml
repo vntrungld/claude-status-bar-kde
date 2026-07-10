@@ -23,6 +23,34 @@ MouseArea {
         }
     }
 
+    // Playful "thinking" verbs (my own list). A fresh word is chosen each time a
+    // session enters the thinking state and held for that phase, avoiding an
+    // immediate repeat — Claude-Code-CLI style.
+    readonly property var thinkingWords: [
+        "Brewing", "Pondering", "Percolating", "Noodling", "Tinkering",
+        "Simmering", "Conjuring", "Wrangling", "Untangling", "Musing",
+        "Scheming", "Crunching", "Distilling", "Puzzling", "Weaving",
+        "Sculpting", "Forging", "Ruminating", "Marinating", "Incubating",
+        "Synthesizing", "Orchestrating", "Calibrating", "Whittling",
+        "Germinating", "Concocting", "Cogitating", "Finagling"
+    ]
+    property string thinkingWord: thinkingWords[0]
+    property string prevState: ""
+    function pickThinkingWord() {
+        if (thinkingWords.length < 2)
+            return thinkingWords[0]
+        var w = thinkingWord
+        while (w === thinkingWord)
+            w = thinkingWords[Math.floor(Math.random() * thinkingWords.length)]
+        return w
+    }
+    onAggChanged: {
+        var s = agg.state
+        if (s === "thinking" && prevState !== "thinking")
+            thinkingWord = pickThinkingWord()
+        prevState = s
+    }
+
     property int elapsed: 0
     Timer {
         interval: 1000; repeat: true
@@ -94,8 +122,9 @@ MouseArea {
             }
         }
         PlasmaComponents.Label {
-            visible: agg.state === "tool"
-            text: toolLabel(agg.tool)
+            visible: agg.state === "tool" || agg.state === "thinking"
+            text: agg.state === "tool" ? toolLabel(agg.tool) : (thinkingWord + "…")
+            elide: Text.ElideRight
         }
         PlasmaComponents.Label {
             visible: agg.started_at !== null
