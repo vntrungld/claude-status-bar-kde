@@ -10,7 +10,7 @@ PlasmoidItem {
     readonly property string binDir:
         "${XDG_DATA_HOME:-$HOME/.local/share}/claude-status-bar/bin"
     readonly property string aggCmd: "python3 " + binDir + "/claude-status-aggregate.py"
-    readonly property string usageCmd: "python3 " + binDir + "/usage-fetch.py"
+    readonly property string usageCmd: "python3 " + binDir + "/cux-usage-fetch.py"
 
     property var agg: ({ state: "idle", tool: null, started_at: null,
                          active_count: 0, waiting_count: 0, sessions: [] })
