@@ -51,3 +51,12 @@ def test_main_missing_credentials_prints_reauth(tmp_path, capsys, data_home):
     m.main()
     out = json.loads(capsys.readouterr().out.strip())
     assert out["status"] == "reauth"
+
+def test_compute_returns_dict_and_writes_cache(tmp_path, data_home):
+    import statusbar_paths as p
+    m = _mod()
+    m.CRED = str(tmp_path / "nonexistent.json")  # forces reauth path
+    out = m.compute()
+    assert out["status"] == "reauth"
+    # reauth is not rate_limited, so the cache is written
+    assert os.path.exists(p.usage_cache_path())
