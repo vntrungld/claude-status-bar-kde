@@ -8,7 +8,8 @@ SETTINGS="$HOME/.claude/settings.json"
 echo "Installing scripts to $BIN"
 mkdir -p "$BIN"
 cp "$HERE"/scripts/statusbar_paths.py "$HERE"/scripts/claude-status-hook.py \
-   "$HERE"/scripts/claude-status-aggregate.py "$HERE"/scripts/usage-fetch.py "$BIN/"
+   "$HERE"/scripts/claude-status-aggregate.py "$HERE"/scripts/usage-fetch.py \
+   "$HERE"/scripts/cux-usage-fetch.py "$BIN/"
 chmod +x "$BIN"/*.py
 
 # Bake the current claude version into the UA header.

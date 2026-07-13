@@ -66,7 +66,9 @@ Item {
             opacity: 0.6
         }
 
-        Item { Layout.fillHeight: true }   // push the usage section to the bottom
+        // Push usage to the bottom in single-account mode; in cux mode the
+        // account list takes the space (and scrolls) instead.
+        Item { Layout.fillHeight: fullRoot.usage.multi !== true }
 
         Kirigami.Separator { Layout.fillWidth: true }
         RowLayout {
@@ -75,7 +77,7 @@ Item {
             PlasmaComponents.Label { text: i18n("Usage limits"); font.bold: true }
             PlasmaComponents.Label {
                 text: fullRoot.updatedText(fullRoot.usage.fetched_at)
-                visible: text !== ""
+                visible: text !== "" && fullRoot.usage.multi !== true
                 opacity: 0.6
                 font: Kirigami.Theme.smallFont
             }
@@ -101,6 +103,27 @@ Item {
                 }
             }
         }
-        UsageBars { usage: fullRoot.usage; Layout.fillWidth: true }
+        // Single-account (no cux): unchanged.
+        UsageBars {
+            visible: fullRoot.usage.multi !== true
+            usage: fullRoot.usage
+            Layout.fillWidth: true
+        }
+        // Multi-account (cux): one block per managed account; scrolls if tall.
+        QQC2.ScrollView {
+            id: acctScroll
+            visible: fullRoot.usage.multi === true
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            clip: true
+            ColumnLayout {
+                width: acctScroll.availableWidth
+                spacing: Kirigami.Units.largeSpacing
+                Repeater {
+                    model: fullRoot.usage.accounts || []
+                    UsageAccount { account: modelData; Layout.fillWidth: true }
+                }
+            }
+        }
     }
 }

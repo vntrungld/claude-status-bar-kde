@@ -54,7 +54,7 @@ def http_get(token):
     except Exception:
         return 0, ""
 
-def main():
+def compute():
     import statusbar_paths as p
     now = int(time.time())
     prev = load_prev_cache()
@@ -68,7 +68,10 @@ def main():
         result = build_result(now, code, body, prev)
     if result["status"] != "rate_limited":  # respect backoff: don't churn cache on 429
         p.atomic_write_json(p.usage_cache_path(), result)
-    print(json.dumps(result))
+    return result
+
+def main():
+    print(json.dumps(compute()))
 
 if __name__ == "__main__":
     main()
