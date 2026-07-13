@@ -6,6 +6,7 @@
         "Description": "Live Claude Code activity and usage in the panel",
         "Icon": "utilities-terminal",
         "Category": "System Information",
+        "License": "MIT",
         "Version": "0.1",
         "Authors": [{ "Name": "trungld" }]
     },
