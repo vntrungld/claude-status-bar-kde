@@ -56,3 +56,40 @@ def _to_epoch(iso):
         return int(datetime.fromisoformat(s).timestamp())
     except ValueError:
         return None
+
+
+def build_multi(state, cache, now):
+    active_slot = state.get("activeSlot")
+    accounts = []
+    for acc in sorted(state.get("accounts", {}).values(),
+                      key=lambda a: a.get("slot", 0)):
+        org = acc.get("orgUuid")
+        entry = {
+            "slot": acc.get("slot"),
+            "alias": acc.get("alias") or "",
+            "email": acc.get("email") or "",
+            "active": acc.get("slot") == active_slot,
+        }
+        c = cache.get(org) if org else None
+        if c:
+            entry.update(status="ok", has_data=True,
+                         five_hour=c.get("five_hour", {}),
+                         seven_day=c.get("seven_day", {}),
+                         polled_at=_to_epoch(c.get("polled_at")))
+        else:
+            entry.update(status="loading", has_data=False,
+                         five_hour={}, seven_day={}, polled_at=None)
+        accounts.append(entry)
+
+    # Top level mirrors the active account (fallback: first account with data)
+    # so CompactView and the popup header stay consistent with one source.
+    top = next((a for a in accounts if a["active"] and a["has_data"]), None) \
+        or next((a for a in accounts if a["has_data"]), None)
+    return {
+        "multi": True,
+        "accounts": accounts,
+        "status": "ok" if any(a["has_data"] for a in accounts) else "loading",
+        "fetched_at": top["polled_at"] if top else None,
+        "five_hour": top["five_hour"] if top else {},
+        "seven_day": top["seven_day"] if top else {},
+    }

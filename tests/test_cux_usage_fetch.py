@@ -44,3 +44,61 @@ def test_find_cux_binary_prefers_path(monkeypatch):
     m = _mod()
     monkeypatch.setattr(m.shutil, "which", lambda name: "/usr/bin/cux")
     assert m.find_cux_binary() == "/usr/bin/cux"
+
+
+def _state():
+    return {
+        "activeSlot": 2,
+        "accounts": {
+            "1": {"slot": 1, "email": "oe@x.com", "alias": "oe", "orgUuid": "org-1"},
+            "2": {"slot": 2, "email": "me@x.com", "alias": "", "orgUuid": "org-2"},
+            "3": {"slot": 3, "email": "gone@x.com", "alias": "g", "orgUuid": "org-3"},
+        },
+    }
+
+def _cache():
+    return {
+        "org-1": {"five_hour": {"utilization": 10}, "seven_day": {"utilization": 72},
+                  "polled_at": "2026-07-13T05:02:52.874983408Z"},
+        "org-2": {"five_hour": {"utilization": 41}, "seven_day": {"utilization": 14},
+                  "polled_at": "2026-07-13T05:02:53.136051313Z"},
+        # org-3 intentionally absent from cache (never polled)
+    }
+
+def test_build_multi_orders_by_slot_and_flags_active():
+    m = _mod()
+    r = m.build_multi(_state(), _cache(), now=1752383800)
+    assert r["multi"] is True
+    slots = [a["slot"] for a in r["accounts"]]
+    assert slots == [1, 2, 3]
+    active = [a for a in r["accounts"] if a["active"]]
+    assert len(active) == 1 and active[0]["slot"] == 2
+
+def test_build_multi_top_level_is_active_account():
+    m = _mod()
+    r = m.build_multi(_state(), _cache(), now=1752383800)
+    assert r["five_hour"]["utilization"] == 41   # slot 2 (active)
+    assert r["seven_day"]["utilization"] == 14
+    assert r["status"] == "ok"
+    assert r["fetched_at"] == m._to_epoch("2026-07-13T05:02:53.136051313Z")
+
+def test_build_multi_missing_account_marked_no_data():
+    m = _mod()
+    r = m.build_multi(_state(), _cache(), now=1752383800)
+    g = [a for a in r["accounts"] if a["slot"] == 3][0]
+    assert g["has_data"] is False
+    assert g["five_hour"] == {}
+    assert g["polled_at"] is None
+
+def test_build_multi_alias_fallback_labeling_left_to_ui():
+    m = _mod()
+    r = m.build_multi(_state(), _cache(), now=1752383800)
+    s2 = [a for a in r["accounts"] if a["slot"] == 2][0]
+    assert s2["alias"] == "" and s2["email"] == "me@x.com"
+
+def test_build_multi_empty_cache_status_loading():
+    m = _mod()
+    r = m.build_multi(_state(), {}, now=1752383800)
+    assert r["status"] == "loading"
+    assert all(a["has_data"] is False for a in r["accounts"])
+    assert r["five_hour"] == {}
