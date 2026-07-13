@@ -16,6 +16,18 @@ PlasmoidItem {
                          active_count: 0, waiting_count: 0, sessions: [] })
     property var usage: ({ status: "loading", five_hour: {}, seven_day: {} })
 
+    // True while a usage fetch is in flight (drives the popup refresh button's
+    // busy state). Counts fast-retry attempts so boot retries stay bounded.
+    property bool usageFetching: false
+    property int usageRetryCount: 0
+
+    // User- or schedule-initiated fetch: fresh retry budget.
+    function refreshUsage() {
+        root.usageRetryCount = 0
+        root.usageFetching = true
+        usageSrc.run(root.usageCmd)
+    }
+
     // Executable engine runs the command through /bin/sh, so the ${XDG...}
     // expansion in binDir is resolved by the shell — no manual env lookup.
     Plasma5Support.DataSource {
@@ -41,18 +53,37 @@ PlasmoidItem {
         connectedSources: []
         onNewData: (source, data) => {
             disconnectSource(source)
+            root.usageFetching = false
             try { root.usage = JSON.parse((data["stdout"] || "").trim()) }
             catch (e) { /* keep previous */ }
         }
         function run(cmd) { connectSource(cmd) }
     }
 
+    // Usage is always fetched (the popup shows it regardless of the panel
+    // setting); showUsageOnPanel only controls the compact-view readout.
+    // triggeredOnStart makes login/boot fetch immediately.
     Timer {
         id: usageTimer
-        interval: 300000; repeat: true
-        running: plasmoid.configuration.showUsageOnPanel
+        interval: 300000; repeat: true; running: true
         triggeredOnStart: true
-        onTriggered: usageSrc.run(root.usageCmd)
+        onTriggered: root.refreshUsage()
+    }
+
+    // Boot resilience: if the first fetch fails (e.g. no network yet right after
+    // login), retry quickly until usage lands, then this timer idles. Bounded so
+    // a persistent failure doesn't spin — the 5-minute timer takes over after.
+    // Skips reauth/rate_limited, where a fast retry can't help or must back off.
+    Timer {
+        id: usageRetryTimer
+        interval: 10000; repeat: true
+        running: (root.usage.status === "loading" || root.usage.status === "error")
+                 && root.usageRetryCount < 18
+        onTriggered: {
+            root.usageRetryCount += 1
+            root.usageFetching = true
+            usageSrc.run(root.usageCmd)
+        }
     }
 
     compactRepresentation: CompactView {
@@ -60,5 +91,10 @@ PlasmoidItem {
         usage: root.usage
         onClicked: root.expanded = !root.expanded   // toggle popup (PlasmoidItem.expanded)
     }
-    fullRepresentation: FullView { agg: root.agg; usage: root.usage }
+    fullRepresentation: FullView {
+        agg: root.agg
+        usage: root.usage
+        usageFetching: root.usageFetching
+        onRefreshRequested: root.refreshUsage()
+    }
 }
