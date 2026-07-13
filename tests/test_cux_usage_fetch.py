@@ -102,3 +102,46 @@ def test_build_multi_empty_cache_status_loading():
     assert r["status"] == "loading"
     assert all(a["has_data"] is False for a in r["accounts"])
     assert r["five_hour"] == {}
+
+def test_main_no_cux_falls_back_to_single(monkeypatch, tmp_path, data_home, capsys):
+    m = _mod()
+    monkeypatch.setattr(m, "find_cux_binary", lambda: None)
+    # Force the single-account path into its reauth branch (no creds file).
+    uf = m._load_usage_fetch()
+    monkeypatch.setattr(uf, "CRED", str(tmp_path / "nope.json"))
+    monkeypatch.setattr(m, "_load_usage_fetch", lambda: uf)
+    m.main()
+    out = json.loads(capsys.readouterr().out.strip())
+    assert out["multi"] is False
+    assert out["status"] == "reauth"
+    assert "accounts" not in out
+
+def test_main_with_cux_builds_multi(monkeypatch, data_home, capsys):
+    m = _mod()
+    monkeypatch.setattr(m, "find_cux_binary", lambda: "/usr/bin/cux")
+    monkeypatch.setattr(m, "run_refresh", lambda b: None)  # no real subprocess
+    monkeypatch.setattr(m, "load_cux_state", _state)
+    monkeypatch.setattr(m, "load_cux_usage_cache", _cache)
+    m.main()
+    out = json.loads(capsys.readouterr().out.strip())
+    assert out["multi"] is True
+    assert len(out["accounts"]) == 3
+    assert out["five_hour"]["utilization"] == 41  # active (slot 2)
+
+def test_main_cux_present_but_no_accounts_falls_back(monkeypatch, tmp_path, data_home, capsys):
+    m = _mod()
+    monkeypatch.setattr(m, "find_cux_binary", lambda: "/usr/bin/cux")
+    monkeypatch.setattr(m, "load_cux_state", lambda: {"activeSlot": 1, "accounts": {}})
+    uf = m._load_usage_fetch()
+    monkeypatch.setattr(uf, "CRED", str(tmp_path / "nope.json"))
+    monkeypatch.setattr(m, "_load_usage_fetch", lambda: uf)
+    m.main()
+    out = json.loads(capsys.readouterr().out.strip())
+    assert out["multi"] is False
+
+def test_run_refresh_swallows_subprocess_errors(monkeypatch):
+    m = _mod()
+    def boom(*a, **k):
+        raise OSError("no such binary")
+    monkeypatch.setattr(m.subprocess, "run", boom)
+    m.run_refresh("/usr/bin/cux")  # must not raise

@@ -93,3 +93,42 @@ def build_multi(state, cache, now):
         "five_hour": top["five_hour"] if top else {},
         "seven_day": top["seven_day"] if top else {},
     }
+
+
+def run_refresh(cux_bin):
+    """Best-effort: re-poll every account. Never blocks the widget."""
+    try:
+        subprocess.run([cux_bin, "usage", "refresh"],
+                       capture_output=True, timeout=25)
+    except Exception:
+        pass  # stale cache still renders below
+
+
+def _load_usage_fetch():
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "usage-fetch.py")
+    spec = importlib.util.spec_from_file_location("usage_fetch", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def fallback_single():
+    result = _load_usage_fetch().compute()
+    result["multi"] = False
+    return result
+
+
+def main():
+    cux_bin = find_cux_binary()
+    state = load_cux_state()
+    if cux_bin and state and state.get("accounts"):
+        run_refresh(cux_bin)
+        cache = load_cux_usage_cache() or {}
+        result = build_multi(state, cache, int(time.time()))
+    else:
+        result = fallback_single()
+    print(json.dumps(result))
+
+
+if __name__ == "__main__":
+    main()
